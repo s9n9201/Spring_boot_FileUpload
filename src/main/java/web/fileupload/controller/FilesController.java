@@ -12,6 +12,7 @@ import web.fileupload.message.ResponseMessage;
 import web.fileupload.model.FileInfo;
 import web.fileupload.service.FilesStorageService;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -50,9 +51,12 @@ public class FilesController {
     @GetMapping("/files/{filename:.+}")
     public ResponseEntity<Resource> getFile(@PathVariable String filename) {
         Resource file=filesStorageService.load(filename);
+        System.out.println("download > "+file);
+        System.out.println("download > "+file.getFilename());
+        System.out.println("download > "+new String(file.getFilename().getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1));
         return ResponseEntity
                 .ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\""+file.getFilename()+"\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename="+new String(file.getFilename().getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1))
                 .body(file);
     }
 

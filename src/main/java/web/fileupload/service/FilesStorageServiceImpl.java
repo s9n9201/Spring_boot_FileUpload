@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 
 @Service
 public class FilesStorageServiceImpl implements FilesStorageService {
-    private final Path root=Paths.get("uploads");
+    private final Path root=Paths.get("Storage");
     @Override
     public void init() {
         try {
@@ -30,6 +30,7 @@ public class FilesStorageServiceImpl implements FilesStorageService {
         try {
             Files.copy(file.getInputStream(), this.root.resolve(file.getOriginalFilename()));
         } catch (Exception e) {
+            System.out.println("TEST");
             throw new RuntimeException("Could not store the file. Error: "+e.getMessage());
         }
     }
@@ -51,7 +52,8 @@ public class FilesStorageServiceImpl implements FilesStorageService {
 
     @Override
     public void deleteAll() {
-        FileSystemUtils.deleteRecursively(root.toFile());
+        //FileSystemUtils.deleteRecursively(root.toFile());
+        FileSystemUtils.deleteRecursively(Paths.get("uploads").toFile());
     }
 
     @Override

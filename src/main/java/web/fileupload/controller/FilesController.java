@@ -13,6 +13,8 @@ import web.fileupload.model.FileInfo;
 import web.fileupload.service.FilesStorageService;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,16 +25,26 @@ public class FilesController {
     FilesStorageService filesStorageService;
 
     @PostMapping("/upload")
-    public ResponseEntity<ResponseMessage> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ResponseMessage> uploadFile(@RequestParam String module, @RequestParam String fromuuid, @RequestParam MultipartFile[] files) {
+        boolean NoFile=false;
         String message="";
         HttpStatus httpStatus=null;
-        try {
-            filesStorageService.save(file);
-            message="檔案： "+file.getOriginalFilename()+" 上傳成功！";
-            httpStatus=HttpStatus.OK;
-        } catch (Exception e) {
-            message="檔案: "+file.getOriginalFilename()+" 上傳失敗！";
-            httpStatus=HttpStatus.EXPECTATION_FAILED;
+        NoFile=Arrays.stream(files).map(file -> file.isEmpty()).collect(Collectors.toList()).contains(true);    //檢查有無檔案，其中一個沒有檔案就return 400
+        if (module==null || module.equals("") || fromuuid==null || fromuuid.equals("")) {
+            message="上傳資料驗證失敗！";
+            httpStatus=HttpStatus.BAD_REQUEST;
+        } else if (NoFile) {
+            message="請選擇一個檔案！";
+            httpStatus=HttpStatus.BAD_REQUEST;
+        } else {
+            try {
+                List<String> result=filesStorageService.save(module, fromuuid, files);
+                message=result.size()+" 個檔案上傳成功！";
+                httpStatus=HttpStatus.OK;
+            } catch (Exception e) {
+                message="檔案上傳失敗！";
+                httpStatus=HttpStatus.EXPECTATION_FAILED;
+            }
         }
         return ResponseEntity.status(httpStatus).body(new ResponseMessage(message));
     }
@@ -60,4 +72,17 @@ public class FilesController {
                 .body(file);
     }
 
+    @GetMapping("/test")
+    public String getTest() {
+        List<String> strings = Arrays.asList("abc", "", "bc", "efg", "abcd","", "jkl");
+        List<String> filtered = strings.stream().filter(string -> {
+            System.out.println("過濾前 > "+string);
+            return false;
+        }).collect(Collectors.toList());
+        System.out.println("長度 > "+filtered.size());
+        filtered.stream().forEach(str->{
+            System.out.println("過濾後 > "+str);
+        });
+        return "";
+    }
 }

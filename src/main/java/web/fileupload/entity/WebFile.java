@@ -5,7 +5,7 @@ public class WebFile {
     private String FModule;
     private String FFromUUID;
     private String FFileName;
-    private String FFileUUID;
+    private String FUUIDName;
     private Integer FSize;
 
     public Integer getFRecId() {
@@ -40,12 +40,12 @@ public class WebFile {
         this.FFileName=FFileName;
     }
 
-    public String getFFileUUID() {
-        return FFileUUID;
+    public String getFUUIDName() {
+        return FUUIDName;
     }
 
-    public void setFFileUUID(String FFileUUID) {
-        this.FFileUUID=FFileUUID;
+    public void setFUUIDName(String FUUIDName) {
+        this.FUUIDName=FUUIDName;
     }
 
     public Integer getFSize() {

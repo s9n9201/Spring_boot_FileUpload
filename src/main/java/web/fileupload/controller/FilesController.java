@@ -13,7 +13,6 @@ import web.fileupload.model.FileInfo;
 import web.fileupload.service.FilesStorageService;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,40 +48,38 @@ public class FilesController {
         return ResponseEntity.status(httpStatus).body(new ResponseMessage(message));
     }
 
-    @GetMapping("/files")
-    public ResponseEntity<List<FileInfo>> getListFiles() {
-        List<FileInfo> fileInfoList=filesStorageService.loadAll().map(path -> {
+    @GetMapping("/files/{Module}/{FromUUID}")
+    public ResponseEntity<List<FileInfo>> getFileList(@PathVariable String Module, @PathVariable String FromUUID) {
+        List<FileInfo> fileInfoList=filesStorageService.loadAll(Module, FromUUID).map(path -> {
             String fileName=path.getFileName().toString();
+            String UUIDName=path.getParent().getFileName().toString();
             String url=MvcUriComponentsBuilder
-                    .fromMethodName(FilesController.class, "getFile", path.getFileName().toString()).build().toString();
+                    .fromMethodName(FilesController.class, "getFile", UUIDName, fileName).build().toString();
             return new FileInfo(fileName, url);
         }).collect(Collectors.toList());
         return ResponseEntity.ok().body(fileInfoList);
     }
 
-    @GetMapping("/files/{filename:.+}")
-    public ResponseEntity<Resource> getFile(@PathVariable String filename) {
-        Resource file=filesStorageService.load(filename);
-        System.out.println("download > "+file);
-        System.out.println("download > "+file.getFilename());
-        System.out.println("download > "+new String(file.getFilename().getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1));
-        return ResponseEntity
-                .ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename="+new String(file.getFilename().getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1))
-                .body(file);
+    @GetMapping("/download/{UUIDName}/{filename:.+}")
+    public ResponseEntity<Resource> getFile(@PathVariable String UUIDName, @PathVariable String filename) {
+        Resource file=filesStorageService.load(UUIDName);
+        if (file!=null) {
+            return ResponseEntity
+                    .ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename="+new String(filename.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1) )
+                    .body(file);
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    @GetMapping("/test")
-    public String getTest() {
-        List<String> strings = Arrays.asList("abc", "", "bc", "efg", "abcd","", "jkl");
-        List<String> filtered = strings.stream().filter(string -> {
-            System.out.println("過濾前 > "+string);
-            return false;
-        }).collect(Collectors.toList());
-        System.out.println("長度 > "+filtered.size());
-        filtered.stream().forEach(str->{
-            System.out.println("過濾後 > "+str);
-        });
-        return "";
+    @DeleteMapping("/deletefile/{UUIDName}")
+    public ResponseEntity<?> deleteFile(@PathVariable String UUIDName) {
+        HttpStatus httpStatus=HttpStatus.OK;
+        String Msg=filesStorageService.deleteFile(UUIDName);
+        if (Msg.contains("失敗")) {
+            httpStatus=HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        return ResponseEntity.status(httpStatus).body(new ResponseMessage(Msg));
     }
 }

@@ -12,5 +12,6 @@ public interface FilesStorageService {
     public List<String> save(String Module, String UUID, MultipartFile[] files);
     public Resource load(String filename);
     public void deleteAll();
-    public Stream<Path> loadAll();
+    public Stream<Path> loadAll(String Module, String UUID);
+    public String deleteFile(String UUIDName);
 }

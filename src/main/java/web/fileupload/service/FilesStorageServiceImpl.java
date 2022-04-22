@@ -14,9 +14,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -59,7 +57,7 @@ public class FilesStorageServiceImpl implements FilesStorageService {
                     webFile.setFModule(Module);
                     webFile.setFFileName(file.getOriginalFilename());
                     webFile.setFFromUUID(UUID);
-                    webFile.setFFileUUID(Fileuid);
+                    webFile.setFUUIDName(Fileuid);
                     webFile.setFSize(Integer.parseInt(file.getSize()+""));
                     webFileList.add(webFile);
                 } catch (IOException e) {
@@ -75,37 +73,61 @@ public class FilesStorageServiceImpl implements FilesStorageService {
     }
 
     @Override
-    public Resource load(String filename) {
-        try {
-            Path tmp=Paths.get("Storage//aaa//bbb");
-            Path file=tmp.resolve(filename);    //兜成一個有檔案名稱的完整路徑
-            //Path file=root.resolve(filename);
-            System.out.println("檔案路徑 > "+file);
-            Resource resource=new UrlResource(file.toUri());
-            if (resource.exists() || resource.isReadable()) {
-                return resource;
-            } else {
-                throw new RuntimeException("Could not read the file!");
-            }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Error: "+e.getMessage());
-        }
-    }
-
-    @Override
     public void deleteAll() {
         //FileSystemUtils.deleteRecursively(root.toFile());
         FileSystemUtils.deleteRecursively(Paths.get("uploads").toFile());
     }
 
     @Override
-    public Stream<Path> loadAll() {
+    public String deleteFile(String UUIDName) {
+        String Msg="檔案刪除失敗，請重新操作！";
+        WebFile webFile=fileDAO.deleteFile(UUIDName).orElse(null);
+        if (webFile!=null) {
+            Path filePath=Paths.get(this.root.toString(), webFile.getFModule(), webFile.getFFromUUID(), webFile.getFUUIDName());
+            if (FileSystemUtils.deleteRecursively(filePath.toFile())) { //刪除該路徑下的檔案
+                Msg="檔案刪除成功";
+            }
+        }
+        return Msg;
+    }
+
+    @Override
+    public Stream<Path> loadAll(String Module, String UUID) {
+        Map<Path, Path> map=new HashMap<>();
+        Path FilePath=Paths.get(this.root.toString(), Module, UUID);
         try {
-            return Files.walk(Paths.get("Storage//aaa//bbb"), 1)
-                    .filter(path -> !path.equals(Paths.get("Storage//aaa//bbb")) )
-                    .map(this.root::relativize);    //這邊會把Storage這個根目錄給去掉，但目前看來，不需要去掉也沒關係，因為單純只需要檔名而已
+            List<WebFile> webFileList=fileDAO.getFileList(Module, UUID);
+            if (webFileList.size()>0) {
+                webFileList.forEach(webFile -> {
+                    map.put(Paths.get(webFile.getFUUIDName()), Paths.get(webFile.getFFileName()));
+                });
+                return Files.walk(FilePath, 1)
+                        .filter(path -> map.containsKey(path.getFileName()) )
+                        .map(path -> path.resolve(map.get(path.getFileName())) );
+            }
+            return Stream.empty();
         } catch (IOException e) {
             throw new RuntimeException("Could not load the files!");
+        }
+    }
+
+    @Override
+    public Resource load(String UUIDName) {
+        try {
+            WebFile webFile=fileDAO.getFile(UUIDName).orElse(null);
+            if (webFile!=null) {
+                Path file=Paths.get(this.root.toString(), webFile.getFModule(), webFile.getFFromUUID(), webFile.getFUUIDName());
+                //Path file=root.resolve(filename);
+                Resource resource=new UrlResource(file.toUri());
+                if (resource.exists() || resource.isReadable()) {
+                    return resource;
+                } else {
+                    throw new RuntimeException("Could not read the file!");
+                }
+            }
+            return null;
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Error: "+e.getMessage());
         }
     }
 }
